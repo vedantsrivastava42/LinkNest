@@ -9,7 +9,9 @@ import {
   updateBookmark,
   toggleBookmarkFavourite,
   incrementClickCount,
+  bulkInsertBookmarks,
 } from "@/lib/services/bookmarks";
+import { exportBookmarks, parseImportFile } from "@/lib/importExport";
 import { useToast } from "@/components/ui/Toast";
 import AddBookmark from "./AddBookmark";
 import BookmarkList from "./BookmarkList";
@@ -26,8 +28,10 @@ export default function DashboardClient({ initialBookmarks, userId }) {
   const [catsExpanded, setCatsExpanded] = useState(false);
   const [catsOverflow, setCatsOverflow] = useState(false);
   const catsRef = useRef(null);
+  const [importing, setImporting] = useState(false);
   const { addToast } = useToast();
   const deleteTimerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     setBookmarks(initialBookmarks);
@@ -203,6 +207,75 @@ export default function DashboardClient({ initialBookmarks, userId }) {
     }
   }, [addToast]);
 
+  // ── Import / Export ──────────────────────────────────────────
+  const handleExport = useCallback(() => {
+    if (bookmarks.length === 0) {
+      addToast("No bookmarks to export", { type: "info", duration: 2500 });
+      return;
+    }
+    exportBookmarks(bookmarks);
+    addToast(`Exported ${bookmarks.length} bookmarks`, { type: "success" });
+  }, [bookmarks, addToast]);
+
+  const handleImport = useCallback(
+    async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Reset input so user can re-import same file if needed
+      e.target.value = "";
+
+      setImporting(true);
+      try {
+        const text = await file.text();
+        const { bookmarks: parsed, errors } = parseImportFile(text);
+
+        if (errors.length > 0) {
+          addToast(errors[0], { type: "error", duration: 4000 });
+        }
+        if (parsed.length === 0) {
+          setImporting(false);
+          return;
+        }
+
+        // Deduplicate — skip URLs already in the user's library
+        const existingUrls = new Set(bookmarks.map((b) => b.url));
+        const newOnes = parsed.filter((b) => !existingUrls.has(b.url));
+        const dupes = parsed.length - newOnes.length;
+
+        if (newOnes.length === 0) {
+          addToast(
+            `All ${parsed.length} bookmarks already exist — nothing to import`,
+            { type: "info", duration: 3000 }
+          );
+          setImporting(false);
+          return;
+        }
+
+        const { data, error } = await bulkInsertBookmarks(userId, newOnes);
+
+        if (error) {
+          addToast("Import failed: " + error.message, { type: "error" });
+        } else {
+          setBookmarks((prev) => [
+            ...(data || []),
+            ...prev,
+          ]);
+          const msg = dupes
+            ? `Imported ${newOnes.length} bookmarks (${dupes} duplicates skipped)`
+            : `Imported ${newOnes.length} bookmarks`;
+          addToast(msg, { type: "success" });
+        }
+      } catch (err) {
+        console.error("Import error:", err);
+        addToast("Failed to read file", { type: "error" });
+      } finally {
+        setImporting(false);
+      }
+    },
+    [bookmarks, userId, addToast]
+  );
+
   // Track bookmark click
   const trackClick = useCallback(async (id) => {
     setBookmarks((prev) =>
@@ -269,6 +342,41 @@ export default function DashboardClient({ initialBookmarks, userId }) {
   return (
     <>
       <AddBookmark onAdd={addBookmark} />
+
+      {/* Import / Export Bar */}
+      <div className="mb-4 flex items-center gap-2">
+        <button
+          onClick={handleExport}
+          className="cursor-pointer flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-xs font-medium text-zinc-400 backdrop-blur-sm transition-all hover:bg-white/[0.06] hover:text-zinc-200"
+        >
+          <span className="text-sm">📤</span> Export JSON
+        </button>
+
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          className="cursor-pointer flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-xs font-medium text-zinc-400 backdrop-blur-sm transition-all hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-50"
+        >
+          {importing ? (
+            <>
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-orange-400 border-t-transparent" />
+              Importing…
+            </>
+          ) : (
+            <>
+              <span className="text-sm">📥</span> Import JSON
+            </>
+          )}
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          onChange={handleImport}
+          className="hidden"
+        />
+      </div>
 
       {/* Search Bar + Sort */}
       <div className="mb-4 flex flex-col sm:flex-row gap-3">
