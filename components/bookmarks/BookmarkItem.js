@@ -259,7 +259,7 @@ export default function BookmarkItem({
 
       {/* Actions */}
       <div
-        className="flex items-center gap-1 shrink-0"
+        className="flex flex-col sm:flex-row items-center gap-1 shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
         <button

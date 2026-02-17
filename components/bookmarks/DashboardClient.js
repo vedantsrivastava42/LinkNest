@@ -38,6 +38,7 @@ export default function DashboardClient({ initialBookmarks, userId }) {
   const { addToast } = useToast();
   const deleteTimerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const optimisticIdsRef = useRef(new Set());
 
   useEffect(() => {
     setBookmarks(initialBookmarks);
@@ -59,6 +60,10 @@ export default function DashboardClient({ initialBookmarks, userId }) {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
+            if (optimisticIdsRef.current.has(payload.new.id)) {
+              optimisticIdsRef.current.delete(payload.new.id);
+              return;
+            }
             setBookmarks((prev) => {
               if (prev.some((b) => b.id === payload.new.id)) return prev;
               return [payload.new, ...prev];
@@ -121,10 +126,8 @@ export default function DashboardClient({ initialBookmarks, userId }) {
       const { data, error } = await insertBookmark(userId, title, url, aiData);
 
       if (!error && data) {
-        setBookmarks((prev) => {
-          if (prev.some((b) => b.id === data.id)) return prev;
-          return [data, ...prev];
-        });
+        optimisticIdsRef.current.add(data.id);
+        setBookmarks((prev) => [data, ...prev]);
         addToast("Bookmark added", { type: "success" });
       } else if (error) {
         addToast("Failed to add bookmark", { type: "error" });
