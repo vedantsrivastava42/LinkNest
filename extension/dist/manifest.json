@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Keep Bookmark",
+  "name": "LinkNest",
   "version": "1.0.0",
   "description": "Save, organize, and AI-categorize your bookmarks from any tab",
   "permissions": [
@@ -19,7 +19,7 @@
       "48": "icons/icon-48.svg",
       "128": "icons/icon-128.svg"
     },
-    "default_title": "Keep Bookmark — Save this page"
+    "default_title": "LinkNest — Save this page"
   },
   "icons": {
     "16": "icons/icon-16.svg",

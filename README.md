@@ -1,4 +1,4 @@
-# Keep Bookmark
+# LinkNest
 
 A simple, real-time bookmark manager built with Next.js, Supabase, and Tailwind CSS.
 

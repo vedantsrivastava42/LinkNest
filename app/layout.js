@@ -9,13 +9,13 @@ const geistSans = Geist({
 });
 
 export const metadata = {
-  title: "Keep Bookmark",
+  title: "LinkNest",
   description: "Save, organize, and AI-categorize your bookmarks",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Keep Bookmark",
+    title: "LinkNest",
   },
   other: {
     "mobile-web-app-capable": "yes",

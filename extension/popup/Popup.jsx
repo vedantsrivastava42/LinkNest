@@ -141,7 +141,7 @@ export default function Popup() {
       <div className="popup-container">
         <div className="header">
           <span className="logo">🔖</span>
-          <h1>Keep Bookmark</h1>
+          <h1>LinkNest</h1>
         </div>
         <p className="subtitle">Sign in to save bookmarks</p>
         <button className="btn-primary" onClick={handleSignIn}>
@@ -164,7 +164,7 @@ export default function Popup() {
       <div className="header">
         <div className="header-left">
           <span className="logo">🔖</span>
-          <h1>Keep Bookmark</h1>
+          <h1>LinkNest</h1>
         </div>
         <div className="header-right">
           {user.user_metadata?.avatar_url && (

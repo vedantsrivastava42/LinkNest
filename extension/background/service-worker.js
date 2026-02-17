@@ -9,7 +9,7 @@ import { getClient, getSession } from "../../lib/adapters/extension/auth.js";
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "save-bookmark",
-    title: "Save to Keep Bookmark",
+    title: "Save to LinkNest",
     contexts: ["page", "link"],
   });
 });

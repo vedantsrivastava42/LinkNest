@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "keep-bookmark-v1";
+const CACHE_NAME = "linknest-v1";
 
 // Assets to pre-cache for offline shell
 const PRECACHE_ASSETS = [
@@ -91,7 +91,7 @@ self.addEventListener("push", (event) => {
 
   const data = event.data.json();
   event.waitUntil(
-    self.registration.showNotification(data.title || "Keep Bookmark", {
+    self.registration.showNotification(data.title || "LinkNest", {
       body: data.body || "",
       icon: "/icons/icon-192x192.svg",
       badge: "/icons/icon-72x72.svg",

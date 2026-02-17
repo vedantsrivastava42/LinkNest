@@ -19,7 +19,7 @@ export default function Navbar({ user }) {
     <nav className="sticky top-0 z-50 border-b border-white/[0.1] bg-black/60 backdrop-blur-xl" style={{ boxShadow: '0 1px 15px rgba(0,0,0,0.06)' }}>
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <h1 className="text-lg font-bold text-zinc-100">
-          <span className="mr-2">🔖</span>Keep Bookmark
+          <span className="mr-2">🔖</span>LinkNest
         </h1>
         <div className="flex items-center gap-3">
           {avatarUrl && (

@@ -66,7 +66,7 @@ export default function InstallPrompt() {
         <span className="text-2xl">🔖</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-zinc-100">
-            Install Keep Bookmark
+            Install LinkNest
           </p>
           <p className="text-xs text-zinc-500 mt-0.5">
             Add to home screen for quick access

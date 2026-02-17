@@ -23,7 +23,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm rounded-2xl bg-white/[0.03] p-8 border border-white/[0.06] shadow-2xl backdrop-blur-xl">
         <div className="mb-6 text-center">
           <div className="text-4xl mb-3">🔖</div>
-          <h1 className="text-2xl font-bold text-zinc-100">Keep Bookmark</h1>
+          <h1 className="text-2xl font-bold text-zinc-100">LinkNest</h1>
           <p className="mt-2 text-sm text-zinc-500">
             Save and organize your bookmarks
           </p>
