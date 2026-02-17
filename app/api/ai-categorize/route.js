@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { extractDomain } from "@/lib/utils/url";
+import { extractDomain } from "@/lib/core/url";
 import {
   fetchPageMetadata,
   categorizeWithAI,

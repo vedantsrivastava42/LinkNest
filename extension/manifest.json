@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Keep Bookmark",
+  "version": "1.0.0",
+  "description": "Save, organize, and AI-categorize your bookmarks from any tab",
+  "permissions": [
+    "identity",
+    "storage",
+    "activeTab",
+    "contextMenus",
+    "alarms"
+  ],
+  "host_permissions": [],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "icons/icon-16.svg",
+      "32": "icons/icon-32.svg",
+      "48": "icons/icon-48.svg",
+      "128": "icons/icon-128.svg"
+    },
+    "default_title": "Keep Bookmark — Save this page"
+  },
+  "icons": {
+    "16": "icons/icon-16.svg",
+    "32": "icons/icon-32.svg",
+    "48": "icons/icon-48.svg",
+    "128": "icons/icon-128.svg"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "options_page": "options/index.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

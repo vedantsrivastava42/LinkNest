@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:extension": "vite build --watch --config extension/vite.config.js",
+    "build:extension": "vite build --config extension/vite.config.js && node extension/scripts/copy-assets.mjs",
+    "preview:extension": "npm run build:extension && echo '✓ Load extension/dist as unpacked extension in chrome://extensions'"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -18,9 +21,11 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@vitejs/plugin-react": "^4.7.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "vite": "^6.4.1"
   }
 }
