@@ -1,12 +1,9 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "linknest-v1";
+const CACHE_NAME = "linknest-v2";
 
 // Assets to pre-cache for offline shell
 const PRECACHE_ASSETS = [
-  "/",
-  "/dashboard",
-  "/login",
   "/manifest.json",
 ];
 
@@ -63,13 +60,33 @@ self.addEventListener("fetch", (event) => {
   // Auth callbacks — network only
   if (url.pathname.startsWith("/auth/")) return;
 
-  // Static assets & pages — stale-while-revalidate
+  // Network-first for navigation requests (HTML pages)
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse.ok) {
+            caches.open(CACHE_NAME).then((cache) =>
+              cache.put(request, networkResponse.clone())
+            );
+          }
+          return networkResponse;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) =>
+            cached || caches.match("/login")
+          )
+        )
+    );
+    return;
+  }
+
+  // Static assets & other requests — stale-while-revalidate
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       const cachedResponse = await cache.match(request);
       const fetchPromise = fetch(request)
         .then((networkResponse) => {
-          // Only cache successful same-origin responses
           if (
             networkResponse.ok &&
             url.origin === self.location.origin
@@ -79,7 +96,6 @@ self.addEventListener("fetch", (event) => {
           return networkResponse;
         })
         .catch(() => cachedResponse);
-
       return cachedResponse || fetchPromise;
     })
   );
