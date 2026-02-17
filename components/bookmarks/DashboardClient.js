@@ -8,6 +8,9 @@ import {
   removeBookmark,
   updateBookmark,
   toggleBookmarkFavourite,
+  toggleBookmarkPin,
+  bulkDeleteBookmarks,
+  bulkUpdateCategory,
   incrementClickCount,
   bulkInsertBookmarks,
 } from "@/lib/services/bookmarks";
@@ -29,6 +32,9 @@ export default function DashboardClient({ initialBookmarks, userId }) {
   const [catsOverflow, setCatsOverflow] = useState(false);
   const catsRef = useRef(null);
   const [importing, setImporting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkCatDropdown, setBulkCatDropdown] = useState(false);
   const { addToast } = useToast();
   const deleteTimerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -207,6 +213,92 @@ export default function DashboardClient({ initialBookmarks, userId }) {
     }
   }, [addToast]);
 
+  // ── Pin / Unpin ──────────────────────────────────────────────
+  const togglePin = useCallback(async (id, currentValue) => {
+    const newValue = !currentValue;
+    setBookmarks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, is_pinned: newValue } : b))
+    );
+    const { error } = await toggleBookmarkPin(id, newValue);
+    if (error) {
+      setBookmarks((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, is_pinned: currentValue } : b))
+      );
+      addToast("Failed to update pin", { type: "error" });
+    } else {
+      addToast(newValue ? "Pinned to top" : "Unpinned", {
+        type: "success",
+        duration: 2000,
+      });
+    }
+  }, [addToast]);
+
+  // ── Bulk Actions ─────────────────────────────────────────────
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(bookmarks.map((b) => b.id)));
+  }, [bookmarks]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+
+    const removed = bookmarks.filter((b) => selectedIds.has(b.id));
+    setBookmarks((prev) => prev.filter((b) => !selectedIds.has(b.id)));
+    setSelectedIds(new Set());
+
+    const { error } = await bulkDeleteBookmarks(ids);
+    if (error) {
+      setBookmarks((prev) => [...removed, ...prev]);
+      addToast("Bulk delete failed", { type: "error" });
+    } else {
+      addToast(`Deleted ${ids.length} bookmarks`, { type: "success" });
+    }
+  }, [selectedIds, bookmarks, addToast]);
+
+  const handleBulkCategory = useCallback(async (category) => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+
+    const oldBookmarks = bookmarks.filter((b) => selectedIds.has(b.id));
+    setBookmarks((prev) =>
+      prev.map((b) => (selectedIds.has(b.id) ? { ...b, category } : b))
+    );
+    setBulkCatDropdown(false);
+
+    const { error } = await bulkUpdateCategory(ids, category);
+    if (error) {
+      setBookmarks((prev) =>
+        prev.map((b) => {
+          const old = oldBookmarks.find((o) => o.id === b.id);
+          return old ? { ...b, category: old.category } : b;
+        })
+      );
+      addToast("Bulk category update failed", { type: "error" });
+    } else {
+      addToast(`${ids.length} bookmarks → ${category}`, { type: "success" });
+    }
+  }, [selectedIds, bookmarks, addToast]);
+
+  const handleBulkExport = useCallback(() => {
+    const selected = bookmarks.filter((b) => selectedIds.has(b.id));
+    if (selected.length === 0) return;
+    exportBookmarks(selected);
+    addToast(`Exported ${selected.length} selected bookmarks`, { type: "success" });
+  }, [selectedIds, bookmarks, addToast]);
+
   // ── Import / Export ──────────────────────────────────────────
   const handleExport = useCallback(() => {
     if (bookmarks.length === 0) {
@@ -318,38 +410,45 @@ export default function DashboardClient({ initialBookmarks, userId }) {
     return result;
   }, [bookmarks, filter, tagFilter, searchQuery]);
 
-  // Sort
+  // Sort (pinned always first)
   const sortedBookmarks = useMemo(() => {
     const sorted = [...filteredBookmarks];
     switch (sortBy) {
       case "newest":
-        return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        break;
       case "oldest":
-        return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        break;
       case "title-az":
-        return sorted.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        sorted.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+        break;
       case "title-za":
-        return sorted.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+        sorted.sort((a, b) => (b.title || "").localeCompare(a.title || ""));
+        break;
       case "most-visited":
-        return sorted.sort((a, b) => (b.click_count || 0) - (a.click_count || 0));
+        sorted.sort((a, b) => (b.click_count || 0) - (a.click_count || 0));
+        break;
       case "least-visited":
-        return sorted.sort((a, b) => (a.click_count || 0) - (b.click_count || 0));
-      default:
-        return sorted;
+        sorted.sort((a, b) => (a.click_count || 0) - (b.click_count || 0));
+        break;
     }
+    // Pinned always on top
+    sorted.sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
+    return sorted;
   }, [filteredBookmarks, sortBy]);
 
   return (
     <>
       <AddBookmark onAdd={addBookmark} />
 
-      {/* Import / Export Bar */}
-      <div className="mb-4 flex items-center gap-2">
+      {/* Import / Export / Bulk Bar */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           onClick={handleExport}
           className="cursor-pointer flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-xs font-medium text-zinc-400 backdrop-blur-sm transition-all hover:bg-white/[0.06] hover:text-zinc-200"
         >
-          <span className="text-sm">📤</span> Export JSON
+          <span className="text-sm">📤</span> Export
         </button>
 
         <button
@@ -364,9 +463,24 @@ export default function DashboardClient({ initialBookmarks, userId }) {
             </>
           ) : (
             <>
-              <span className="text-sm">📥</span> Import JSON
+              <span className="text-sm">📥</span> Import
             </>
           )}
+        </button>
+
+        <button
+          onClick={() => {
+            setBulkMode(!bulkMode);
+            setSelectedIds(new Set());
+            setBulkCatDropdown(false);
+          }}
+          className={`cursor-pointer flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-medium backdrop-blur-sm transition-all ${
+            bulkMode
+              ? "border-orange-500/30 bg-orange-500/10 text-orange-400"
+              : "border-white/[0.06] bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
+          }`}
+        >
+          <span className="text-sm">☑</span> {bulkMode ? "Exit Select" : "Select"}
         </button>
 
         <input
@@ -376,6 +490,60 @@ export default function DashboardClient({ initialBookmarks, userId }) {
           onChange={handleImport}
           className="hidden"
         />
+
+        {/* Bulk Action Bar */}
+        {bulkMode && selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs text-zinc-400">
+              {selectedIds.size} selected
+            </span>
+            <button
+              onClick={selectAll}
+              className="cursor-pointer rounded-lg px-2 py-1 text-[10px] font-medium text-orange-400 border border-orange-500/20 bg-orange-500/10 hover:bg-orange-500/20 transition-all"
+            >
+              All
+            </button>
+            <button
+              onClick={deselectAll}
+              className="cursor-pointer rounded-lg px-2 py-1 text-[10px] font-medium text-zinc-400 border border-white/[0.06] hover:text-zinc-200 transition-all"
+            >
+              None
+            </button>
+            <button
+              onClick={handleBulkExport}
+              className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-medium text-blue-400 border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all"
+            >
+              📤 Export
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setBulkCatDropdown(!bulkCatDropdown)}
+                className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-medium text-amber-400 border border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/20 transition-all"
+              >
+                🏷 Category ▼
+              </button>
+              {bulkCatDropdown && (
+                <div className="absolute top-8 left-0 z-50 max-h-48 overflow-y-auto rounded-xl border border-white/[0.08] bg-zinc-900 shadow-2xl py-1">
+                  {Object.keys(CATEGORY_COLORS).map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => handleBulkCategory(cat)}
+                      className="cursor-pointer block w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/[0.06] transition-all"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleBulkDelete}
+              className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-medium text-red-400 border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition-all"
+            >
+              🗑 Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search Bar + Sort */}
@@ -557,9 +725,13 @@ export default function DashboardClient({ initialBookmarks, userId }) {
         bookmarks={sortedBookmarks}
         onDelete={deleteBookmark}
         onToggleFavourite={toggleFavourite}
+        onTogglePin={togglePin}
         onEdit={editBookmark}
         onTrackClick={trackClick}
         categoryColors={CATEGORY_COLORS}
+        bulkMode={bulkMode}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
         emptyMessage={
           filter === "favourites"
             ? "No favourites yet. Star a bookmark to add it here!"

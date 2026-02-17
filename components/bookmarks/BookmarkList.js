@@ -6,9 +6,13 @@ export default function BookmarkList({
   bookmarks,
   onDelete,
   onToggleFavourite,
+  onTogglePin,
   onEdit,
   onTrackClick,
   categoryColors,
+  bulkMode,
+  selectedIds,
+  onToggleSelect,
   emptyMessage,
 }) {
   if (bookmarks.length === 0) {
@@ -28,9 +32,13 @@ export default function BookmarkList({
           bookmark={bookmark}
           onDelete={onDelete}
           onToggleFavourite={onToggleFavourite}
+          onTogglePin={onTogglePin}
           onEdit={onEdit}
           onTrackClick={onTrackClick}
           categoryColors={categoryColors}
+          bulkMode={bulkMode}
+          isSelected={selectedIds?.has(bookmark.id)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </ul>

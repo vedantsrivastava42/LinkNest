@@ -14,9 +14,9 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} font-sans antialiased bg-[#050505] text-zinc-100`}
+        className={`${geistSans.variable} font-sans antialiased`}
       >
         <ToastProvider>{children}</ToastProvider>
       </body>

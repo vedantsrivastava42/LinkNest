@@ -10,9 +10,13 @@ export default function BookmarkItem({
   bookmark,
   onDelete,
   onToggleFavourite,
+  onTogglePin,
   onEdit,
   onTrackClick,
   categoryColors,
+  bulkMode,
+  isSelected,
+  onToggleSelect,
 }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(bookmark.title);
@@ -155,15 +159,41 @@ export default function BookmarkItem({
   return (
     <li
       onClick={() => {
+        if (bulkMode) {
+          onToggleSelect(bookmark.id);
+          return;
+        }
         if (onTrackClick) onTrackClick(bookmark.id);
         window.open(bookmark.url, "_blank", "noopener,noreferrer");
       }}
-      className="group flex items-start gap-4 rounded-2xl bg-white/[0.02] px-5 py-4 border border-white/[0.14] backdrop-blur-xl transition-all hover:bg-white/[0.04] hover:border-white/[0.22] cursor-pointer"
+      className={`group flex items-start gap-4 rounded-2xl px-5 py-4 border backdrop-blur-xl transition-all cursor-pointer ${
+        isSelected
+          ? "bg-orange-500/10 border-orange-500/30"
+          : bookmark.is_pinned
+          ? "bg-amber-500/[0.04] border-amber-500/20"
+          : "bg-white/[0.02] border-white/[0.14] hover:bg-white/[0.04] hover:border-white/[0.22]"
+      }`}
       style={{
         boxShadow:
           "0 0 18px rgba(255,255,255,0.05), inset 0 0 14px rgba(255,255,255,0.02)",
       }}
     >
+      {/* Bulk Select Checkbox */}
+      {bulkMode && (
+        <div className="flex items-center shrink-0 mt-0.5" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={!!isSelected}
+            onChange={() => onToggleSelect(bookmark.id)}
+            className="h-4 w-4 rounded border-zinc-600 text-orange-500 focus:ring-orange-500 cursor-pointer accent-orange-500"
+          />
+        </div>
+      )}
+
+      {/* Pin Indicator */}
+      {bookmark.is_pinned && !bulkMode && (
+        <span className="shrink-0 text-amber-400 text-xs mt-0.5" title="Pinned">📌</span>
+      )}
       {/* Favicon */}
       {faviconUrl ? (
         <img
@@ -232,6 +262,18 @@ export default function BookmarkItem({
         className="flex items-center gap-1 shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          onClick={() => onTogglePin(bookmark.id, bookmark.is_pinned)}
+          className={`cursor-pointer rounded-lg p-1.5 text-sm transition-all hover:scale-110 ${
+            bookmark.is_pinned
+              ? "text-amber-400"
+              : "text-zinc-600 hover:text-amber-400"
+          }`}
+          title={bookmark.is_pinned ? "Unpin" : "Pin to top"}
+        >
+          📌
+        </button>
+
         <button
           onClick={() => onToggleFavourite(bookmark.id, bookmark.is_favorite)}
           className={`cursor-pointer rounded-lg p-1.5 text-base transition-all hover:scale-110 ${
